@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Gemini API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #357ae8;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+        }
+        .error {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #c62828;
+        }
+        .info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            color: #1565c0;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Gemini API Connection</h1>
+        
+        <div class="input-group">
+            <label for="apiKey">Gemini API Key:</label>
+            <input type="text" id="apiKey" placeholder="AIzaSy..." value="AIzaSyDZDp-GzBTUR-uU5M4yyQ-yCxf5q3JXmKs">
+        </div>
+        
+        <div class="input-group">
+            <label for="testPrompt">Test Prompt:</label>
+            <textarea id="testPrompt" placeholder="Enter a test prompt...">Hello! Please respond with a brief greeting to confirm the API is working.</textarea>
+        </div>
+        
+        <button id="testButton" onclick="testAPI()">Test API Connection</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const prompt = document.getElementById('testPrompt').value.trim();
+            const resultDiv = document.getElementById('result');
+            const button = document.getElementById('testButton');
+
+            if (!apiKey) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Error: Please enter an API key';
+                return;
+            }
+
+            if (!prompt) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Error: Please enter a test prompt';
+                return;
+            }
+
+            button.disabled = true;
+            resultDiv.className = 'result info loading';
+            resultDiv.textContent = 'Testing API connection...';
+
+            try {
+                const apiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+                
+                console.log('Sending request to:', apiEndpoint);
+                console.log('API Key (first 10 chars):', apiKey.substring(0, 10));
+                
+                const response = await fetch(`${apiEndpoint}?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }],
+                        generationConfig: {
+                            temperature: 0.3,
+                            topK: 20,
+                            topP: 0.8,
+                            maxOutputTokens: 2048,
+                        }
+                    })
+                });
+
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} - ${JSON.stringify(data)}`);
+                }
+
+                if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                    const responseText = data.candidates[0].content.parts[0].text;
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = '✅ API Connection Successful!\n\nResponse:\n' + responseText;
+                } else if (data.error) {
+                    throw new Error(data.error.message || JSON.stringify(data.error));
+                } else {
+                    throw new Error('Invalid response format: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                console.error('API Test Error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ API Test Failed!\n\nError:\n' + error.message;
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        // Allow Enter key in prompt but not in API key
+        document.getElementById('testPrompt').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                testAPI();
+            }
+        });
+    </script>
+</body>
+</html>
